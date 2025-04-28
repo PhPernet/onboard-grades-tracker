@@ -4,7 +4,9 @@ import os
 import pandas as pd
 from io import StringIO
 import unicodedata
+from dotenv import load_dotenv
 
+load_dotenv()
 # Base URL for the onboard platform
 BASE = "https://onboard.ec-nantes.fr"
 LOGIN_URL = f"{BASE}/login"  # Login endpoint
@@ -16,8 +18,8 @@ DIR_FILE = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH = os.path.join(DIR_FILE, "notes.csv")
 
 # Login credentials
-LOGIN = ""
-PASSWORD = ""
+LOGIN = os.getenv("LOGIN")
+PASSWORD = os.getenv("PASSWORD")
 
 # Year to check for new notes
 YEAR = "2023-2024"
