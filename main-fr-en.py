@@ -5,6 +5,7 @@ import pandas as pd
 from io import StringIO
 import unicodedata
 from dotenv import load_dotenv
+import re
 
 load_dotenv()
 # Base URL for the onboard platform
@@ -24,6 +25,8 @@ PASSWORD = os.getenv("PASSWORD")
 # Year to check for new notes
 YEAR = "2023-2024"
 
+# Regex to find the ids linked to the options for years
+regex_option_years = re.compile(r"form:sidebar_menuid':'(\d+_\d+_\d+)'.*?<span[^>]*>\s*\d+-\d+\s*</span>")
 
 def get_input_value(soup, name):
     """
@@ -71,7 +74,7 @@ def get_common_params(soup):
     }
 
 
-def ajax_sidebar(session, submenu_id, common_params, ajax_headers):
+def ajax_sidebar(session: requests.Session, submenu_id: str, common_params: dict, ajax_headers: dict):
     """
     Perform an AJAX request to open a specific submenu on the onboard platform.
     """
@@ -86,23 +89,20 @@ def ajax_sidebar(session, submenu_id, common_params, ajax_headers):
         "form:j_idt52": "form:j_idt52",
         "webscolaapp.Sidebar.ID_SUBMENU": submenu_id,
     }
-    session.post(MENU_URL, data=payload, headers=ajax_headers).raise_for_status()
+    resp_ajax = session.post(MENU_URL, data=payload, headers=ajax_headers)
+    resp_ajax.raise_for_status()
+    return resp_ajax
 
 
-def find_menu_id_for_year(partial_response, year):
+def find_menu_id_for_last_year(partial_response):
     """
-    Extract the menu ID corresponding to a specific year from the partial response.
+    Extract the menu ID corresponding to the last year from the partial response.
     """
-    soup = BeautifulSoup(partial_response, "html.parser")
-    links = soup.find_all("a", class_="ui-menuitem-link")
-    for link in links:
-        if year in link.text:
-            onclick_attr = link.get("onclick", "")
-            if "form:sidebar_menuid" in onclick_attr:
-                start = onclick_attr.find("'form:sidebar_menuid':'") + len("'form:sidebar_menuid':'")
-                end = onclick_attr.find("'", start)
-                return onclick_attr[start:end]
-    return None
+    list_matches = list(regex_option_years.finditer(partial_response))
+    if list_matches:
+        return list_matches[-1].group(1)
+    else:
+        raise ValueError("No match found for year options")
 
 
 def download_notes(session, common_params, menu_id):
@@ -245,12 +245,10 @@ def main():
     ajax_sidebar(session, "submenu_692908", common_params, ajax_headers)
 
     # Step 3: Open "Notes" submenu
-    ajax_sidebar(session, "submenu_3755060", common_params, ajax_headers)
+    partial_response = ajax_sidebar(session, "submenu_3755060", common_params, ajax_headers).text
     
-    
-    partial_response = session.post(MENU_URL, data=common_params).text
-    menu_id = find_menu_id_for_year(partial_response, YEAR)
-
+    # partial_response = session.post(MENU_URL, data=common_params).text
+    menu_id = find_menu_id_for_last_year(partial_response)
     # Step 4: Download and parse the notes
     csv_content = download_notes(session, common_params, menu_id)
     new_notes = parse_notes(csv_content)
