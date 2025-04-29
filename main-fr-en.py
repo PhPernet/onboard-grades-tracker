@@ -6,6 +6,9 @@ from io import StringIO
 import unicodedata
 from dotenv import load_dotenv
 import re
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 load_dotenv()
 # Base URL for the onboard platform
@@ -206,16 +209,54 @@ def compare_and_save_notes(new_notes, csv_path, lang):
         else:
             print(f"{len(diff)} new notes detected:")
             print(diff)
+            send_email(diff)  # Appel de la fonction pour envoyer un email
     else:
         has_created_file = True
         print("Initial file created.")
         diff = new_notes
+        send_email(diff)  # Envoi d'un email pour les notes initiales
 
     # Save the updated notes to the CSV file
     new_notes.to_csv(csv_path, index=False)
 
     if not diff.empty and not has_created_file:
         print("File updated with new notes.")
+
+
+def send_email(new_notes):
+    """
+    Envoie un email avec les nouvelles notes détectées.
+    """
+    receiver_email = os.getenv("RECEIVER_EMAIL")
+    sender_email =  os.getenv("SENDER_EMAIL")
+    subject = "Nouvelles notes détectées"
+    
+    # Construire le contenu de l'email
+    body = "Bonjour,\n\nLes nouvelles notes suivantes ont été détectées :\n\n"
+    for _, row in new_notes.iterrows():
+        body += f"- Matière : {row['Cours']}, Note : {row['Note']}\n"
+    body += "\nCordialement,\nVotre script de suivi des notes."
+
+    # Configuration de l'email
+    msg = MIMEMultipart()
+    msg["From"] = sender_email
+    msg["To"] = receiver_email
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain"))
+
+    # Envoi de l'email
+    try:
+        smtp_server = "smtp.mail.me.com"  # Serveur SMTP d'iCloud
+        smtp_port = 587  # Port SMTP d'iCloud
+        smtp_password = os.getenv("SMTP_PASSWORD") # Utiliser un mot de passe d'application iCloud
+
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(sender_email, smtp_password)
+            server.sendmail(sender_email, receiver_email, msg.as_string())
+        print("Email sent successfully.")
+    except Exception as e:
+        print(f"Error sending email: {e}")
 
 
 def main():
