@@ -2,15 +2,7 @@
 
 ## Description
 
-Ce projet est un script Python conçu pour interagir avec la plateforme **Onboard** de l'École Centrale de Nantes. Il permet de télécharger, comparer et sauvegarder les notes académiques au format CSV. Le script prend en charge les langues française et anglaise pour les données.
-
-## Fonctionnalités
-
-- Connexion automatique à la plateforme Onboard.
-- Téléchargement des notes académiques sous forme de fichier CSV.
-- Comparaison des nouvelles notes avec les anciennes pour détecter les mises à jour.
-- Sauvegarde des notes mises à jour dans un fichier CSV local.
-- Envoie d'un mail pour notifier de l'ajout d'une note.
+Ce projet est un script Python conçu pour interagir avec la plateforme **Onboard** de l'École Centrale de Nantes. Il permet de télécharger, comparer et sauvegarder les notes académiques au format CSV, puis d'envoyer un mail de notification lorsqu'une nouvelle note apparaît dans la liste. Le script prend en charge les langues française et anglaise pour les données.
 
 ## Prérequis
 
@@ -27,7 +19,7 @@ Ce projet est un script Python conçu pour interagir avec la plateforme **Onboar
 git clone https://github.com/votre-utilisateur/onboard-notes-tracker.git
 ```
 
-2. Créez un fichier `.env` à la racine du projet et ajoutez-y les variables suivantes avec des valeurs fictives :
+2. Créez un fichier `.env` à la racine du projet et ajoutez-y les variables suivantes en remplaçant par les informations adéquates. Les chaînes de caractères sont saisies sans guillemets.
 ```env
 # Identifiants de connexion
 LOGIN=your_onboard_login
@@ -40,13 +32,20 @@ SMTP_SERVER=smtp.example.com
 # Pour Yahoo, utilisez 465
 SMTP_PORT=465
 
-# Informations sur l'email
+# Informations sur l'email pour l'envoie de la notification
 SENDER_EMAIL=example@domaine.com
 SMTP_PASSWORD=your_smtp_password
+
+# Informations sur l'email pour la réception de la notification
 RECEIVER_EMAIL=recipient@domaine.com
 ```
 
-3. Exécutez le script souhaité.
+Pour certaines messageries, il faudra créer un mot de passe d'application ([instructions](https://support.google.com/accounts/answer/185833?hl=fr) pour gmail). Cela permet entre autres de ne pas stocker en clair votre mot de passe sur la machine.
+
+3. Exécutez le script souhaité. Par exemple :
+```bash
+python3 ~/onboard-notes-tracker/main.py
+```
 
 Les notes seront téléchargées et sauvegardées dans le fichier `notes.csv`.
 Si une nouvelle note apparaît, un mail sera envoyé à l'adresse spécifiée.
