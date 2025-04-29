@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import os
+import sys
 import pandas as pd
 from io import StringIO
 import unicodedata
@@ -50,13 +51,29 @@ def remove_accents(text):
 def login(session):
     """
     Perform login to the onboard platform using the provided session.
+    Check if the login was successful by verifying the presence of specific elements on the page.
+    Handle exceptions if there is no internet connection.
     """
-    print("Logging in to the onboard platform...")
-    session.post(
-        LOGIN_URL, data={"username": LOGIN, "password": PASSWORD, "j_idt27": ""}
-    ).raise_for_status()
-    print("Login successful.")
-    return session.get(MENU_URL)
+    try:
+        print("Logging in to the onboard platform...")
+        response = session.post(
+            LOGIN_URL, data={"username": LOGIN, "password": PASSWORD, "j_idt27": ""}
+        )
+        response.raise_for_status()
+
+        # Check if login was successful by looking for a specific element on the menu page
+        if "form:idInit" not in response.text:
+            print("Login failed: Invalid credentials or unexpected response.")
+            sys.exit(1)
+
+        print("Login successful.")
+        return session.get(MENU_URL)
+    except requests.exceptions.ConnectionError:
+        print("Error: No internet connection. Please check your network and try again.")
+        sys.exit(1)
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred during login: {e}")
+        sys.exit(1)
 
 
 def get_common_params(soup):
