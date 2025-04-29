@@ -85,3 +85,8 @@ Pour automatiser l'exécution du script, vous pouvez utiliser **cron** (sous Lin
 Pour les utilisateurs de Windows, vous pouvez configurer une tâche planifiée pour exécuter le script `launch.sh` ou directement le fichier Python.
 
 **Note :** Assurez-vous que les chemins et permissions sont correctement configurés pour éviter les erreurs lors de l'exécution automatique. En particulier sur macOS, les dossiers Bureau, Documents et Téléchargement on par défaut des accès restreint : il est préférable de placer le script dans un autre dossier.
+
+## Autheurs
+
+- [Philippe Pernet](https://github.com/PhPernet)
+- [Jérémy Rozier](https://github.com/JeremyRozier)
