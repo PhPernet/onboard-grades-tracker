@@ -57,10 +57,11 @@ Pour automatiser l'exécution du script, vous pouvez utiliser **cron** (sous Lin
 1. Créez un fichier `launch.sh` à la racine du projet avec le contenu suivant :
   ```bash
   #!/bin/bash
-  # If the script located in your Home directory.
-  LOG_FILE="$HOME/onboard-grades-tracker/cron.log"
+  # If the script is located in your home directory, use the following:
+  SCRIPT_DIR="$HOME/onboard-grades-tracker"
+  LOG_FILE="$SCRIPT_DIR/cron.log"
   echo "$(date) - Start script" >> $LOG_FILE
-  /usr/bin/python3 $HOME/onboard-grades-tracker/main.py >> $LOG_FILE 2>&1
+  /usr/bin/python3 $SCRIPT_DIR/main.py >> $LOG_FILE 2>&1
   echo "$(date) - End script" >> $LOG_FILE
   echo "" >> $LOG_FILE
   ```
@@ -86,7 +87,7 @@ Pour les utilisateurs de Windows, vous pouvez configurer une tâche planifiée p
 
 **Note :** Assurez-vous que les chemins et permissions sont correctement configurés pour éviter les erreurs lors de l'exécution automatique. En particulier sur macOS, les dossiers Bureau, Documents et Téléchargement on par défaut des accès restreint : il est préférable de placer le script dans un autre dossier.
 
-## Autheurs
+## Auteurs
 
 - [Philippe Pernet](https://github.com/PhPernet)
 - [Jérémy Rozier](https://github.com/JeremyRozier)
