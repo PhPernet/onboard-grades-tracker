@@ -1,3 +1,5 @@
+import warnings
+warnings.filterwarnings("ignore", module="urllib3")
 import requests
 from bs4 import BeautifulSoup
 import os
@@ -16,17 +18,17 @@ load_dotenv()
 BASE = "https://onboard.ec-nantes.fr"
 LOGIN_URL = f"{BASE}/login"  # Login endpoint
 MENU_URL = f"{BASE}/faces/MainMenuPage.xhtml"  # Main menu page
-NOTES_URL = f"{BASE}/faces/ChoixDonnee.xhtml"  # Notes page
+GRADES_URL = f"{BASE}/faces/ChoixDonnee.xhtml"  # Grades page
 
-# Path to the current script's directory and the CSV file for storing notes
+# Path to the current script's directory and the CSV file for storing grades
 DIR_FILE = os.path.dirname(os.path.abspath(__file__))
-CSV_PATH = os.path.join(DIR_FILE, "notes.csv")
+CSV_PATH = os.path.join(DIR_FILE, "grades.csv")
 
 # Login credentials
 LOGIN = os.getenv("LOGIN")
 PASSWORD = os.getenv("PASSWORD")
 
-# Year to check for new notes
+# Year to check for new grades
 YEAR = "2023-2024"
 
 # Regex to find the ids linked to the menus for years
@@ -125,19 +127,19 @@ def find_menu_id_for_last_year(partial_text_response):
         raise ValueError("No match found for year options")
 
 
-def download_notes(session, common_params, menu_id):
+def download_grades(session, common_params, menu_id):
     """
-    Download the notes CSV file from the onboard platform.
+    Download the grades CSV file from the onboard platform.
     """
     payload_final = {
         **common_params,
         "form:sidebar": "form:sidebar",
         "form:sidebar_menuid": menu_id,
     }
-    resp_notes = session.post(MENU_URL, data=payload_final)
-    resp_notes.raise_for_status()
-    soup_notes = BeautifulSoup(resp_notes.text, "html.parser")
-    form = soup_notes.find("form", id="form")
+    resp_grades = session.post(MENU_URL, data=payload_final)
+    resp_grades.raise_for_status()
+    soup_grades = BeautifulSoup(resp_grades.text, "html.parser")
+    form = soup_grades.find("form", id="form")
     payload_download = {
         inp.get("name") or inp.get("id"): inp.get("value", "")
         for inp in form.find_all("input")
@@ -145,23 +147,23 @@ def download_notes(session, common_params, menu_id):
     payload_download["form:j_idt159"] = "form:j_idt159"
     payload_download["form:largeurDivCenter"] = "457"
     payload_download["form:j_idt181_reflowDD"] = "0_0"
-    response = session.post(NOTES_URL, data=payload_download)
+    response = session.post(GRADES_URL, data=payload_download)
     return remove_accents(response.content.decode(encoding="windows-1252"))
 
 
-def parse_notes(csv_content):
+def parse_grades(csv_content):
     """
-    Parse the notes CSV content into a pandas DataFrame.
+    Parse the grades CSV content into a pandas DataFrame.
     """
     csv_buffer = StringIO(csv_content)
     return pd.read_csv(csv_buffer, sep=";")
 
 
-def compare_and_save_notes(new_notes, csv_path, lang):
+def compare_and_save_grades(new_grades, csv_path, lang):
     """
-    Compare the new notes with the existing ones and save the updated notes to a CSV file.
+    Compare the new grades with the existing ones and save the updated grades to a CSV file.
     """
-    print("Comparing notes...")
+    print("Comparing grades...")
     if lang == "fr":
         COMPARE_COLS = ["Annee academique", "UE", "Cours", "Epreuve"]
     else:
@@ -169,9 +171,9 @@ def compare_and_save_notes(new_notes, csv_path, lang):
     has_created_file = False
 
     if os.path.exists(csv_path):
-        old_notes = pd.read_csv(csv_path)
+        old_grades = pd.read_csv(csv_path)
         if lang == "fr":
-            old_notes = old_notes.rename(
+            old_grades = old_grades.rename(
                 columns={
                     "Academic year": "Annee academique",
                     "Course": "Cours",
@@ -181,7 +183,7 @@ def compare_and_save_notes(new_notes, csv_path, lang):
                 }
             )
         else:
-            old_notes = old_notes.rename(
+            old_grades = old_grades.rename(
                 columns={
                     "Annee academique": "Academic year",
                     "Cours": "Course",
@@ -190,15 +192,15 @@ def compare_and_save_notes(new_notes, csv_path, lang):
                     "Note": "Grade",
                 }
             )
-        old_compare = old_notes[COMPARE_COLS].copy()
-        new_compare = new_notes[COMPARE_COLS].copy()
+        old_compare = old_grades[COMPARE_COLS].copy()
+        new_compare = new_grades[COMPARE_COLS].copy()
 
-        # Detect new rows in the new notes
+        # Detect new rows in the new grades
         merged = new_compare.merge(old_compare, how="outer", indicator=True)
         diff_compare = merged[merged["_merge"] == "left_only"].drop(columns=["_merge"])
 
         mask = (
-            new_notes[COMPARE_COLS]
+            new_grades[COMPARE_COLS]
             .apply(
                 lambda row: (
                     row[COMPARE_COLS[0]],
@@ -220,27 +222,27 @@ def compare_and_save_notes(new_notes, csv_path, lang):
                 )
             )
         )
-        diff = new_notes[mask]
+        diff = new_grades[mask]
         if diff.empty:
-            print("No new notes.")
+            print("No new grades.")
         else:
-            print(f"{len(diff)} new notes detected:")
+            print(f"{len(diff)} new grades detected:")
             print(diff)
             send_email(diff)  # Appel de la fonction pour envoyer un email
     else:
         has_created_file = True
         print("Initial file created.")
-        diff = new_notes
-        send_email(diff)  # Envoi d'un email pour les notes initiales
+        diff = new_grades
+        send_email(diff)  # Envoi d'un email pour les grades initiales
 
-    # Save the updated notes to the CSV file
-    new_notes.to_csv(csv_path, index=False)
+    # Save the updated grades to the CSV file
+    new_grades.to_csv(csv_path, index=False)
 
     if not diff.empty and not has_created_file:
-        print("File updated with new notes.")
+        print("File updated with new grades.")
 
 
-def send_email(new_notes):
+def send_email(new_grades):
     """
     Envoie un email avec les nouvelles notes détectées.
     """
@@ -250,7 +252,7 @@ def send_email(new_notes):
     
     # Construire le contenu de l'email
     body = "Bonjour,\n\nLes nouvelles notes suivantes ont été détectées :\n\n"
-    for _, row in new_notes.iterrows():
+    for _, row in new_grades.iterrows():
         body += f"- Matière : {row['Cours']}, Note : {row['Note']}\n"
     body += "\nCordialement,\nVotre script de suivi des notes."
 
@@ -297,21 +299,21 @@ def main():
     soup = BeautifulSoup(resp_get.text, "html.parser")
     common_params = get_common_params(soup)
     ajax_headers = {**session.headers, "Faces-Request": "partial/ajax"}
-    print("Downloading notes...")
+    print("Downloading grades...")
 
     # Step 2: Open "My Schooling" submenu
     ajax_sidebar(session, "submenu_692908", common_params, ajax_headers)
 
-    # Step 3: Open "Notes" submenu
+    # Step 3: Open "grades" submenu
     partial_text_response = ajax_sidebar(session, "submenu_3755060", common_params, ajax_headers).text
 
-    # Step 4: Download and parse the notes
+    # Step 4: Download and parse the grades
     menu_id = find_menu_id_for_last_year(partial_text_response)
-    csv_content = download_notes(session, common_params, menu_id)
-    new_notes = parse_notes(csv_content)
+    csv_content = download_grades(session, common_params, menu_id)
+    new_grades = parse_grades(csv_content)
 
-    # Step 5: Compare and save the notes
-    compare_and_save_notes(new_notes, CSV_PATH, common_params["lang"])
+    # Step 5: Compare and save the grades
+    compare_and_save_grades(new_grades, CSV_PATH, common_params["lang"])
 
 
 if __name__ == "__main__":
