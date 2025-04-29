@@ -25,8 +25,8 @@ PASSWORD = os.getenv("PASSWORD")
 # Year to check for new notes
 YEAR = "2023-2024"
 
-# Regex to find the ids linked to the options for years
-regex_option_years = re.compile(r"form:sidebar_menuid':'(\d+_\d+_\d+)'.*?<span[^>]*>\s*\d+-\d+\s*</span>")
+# Regex to find the ids linked to the menus for years
+regex_menu_id_years = re.compile(r"form:sidebar_menuid':'(\d+_\d+_\d+)'.*?<span[^>]*>\s*\d+-\d+\s*</span>")
 
 def get_input_value(soup, name):
     """
@@ -94,11 +94,11 @@ def ajax_sidebar(session: requests.Session, submenu_id: str, common_params: dict
     return resp_ajax
 
 
-def find_menu_id_for_last_year(partial_response):
+def find_menu_id_for_last_year(partial_text_response):
     """
     Extract the menu ID corresponding to the last year from the partial response.
     """
-    list_matches = list(regex_option_years.finditer(partial_response))
+    list_matches = list(regex_menu_id_years.finditer(partial_text_response))
     if list_matches:
         return list_matches[-1].group(1)
     else:
@@ -245,11 +245,10 @@ def main():
     ajax_sidebar(session, "submenu_692908", common_params, ajax_headers)
 
     # Step 3: Open "Notes" submenu
-    partial_response = ajax_sidebar(session, "submenu_3755060", common_params, ajax_headers).text
-    
-    # partial_response = session.post(MENU_URL, data=common_params).text
-    menu_id = find_menu_id_for_last_year(partial_response)
+    partial_text_response = ajax_sidebar(session, "submenu_3755060", common_params, ajax_headers).text
+
     # Step 4: Download and parse the notes
+    menu_id = find_menu_id_for_last_year(partial_text_response)
     csv_content = download_notes(session, common_params, menu_id)
     new_notes = parse_notes(csv_content)
 
