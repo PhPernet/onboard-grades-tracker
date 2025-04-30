@@ -52,40 +52,53 @@ Si une nouvelle note apparaît, un mail sera envoyé à l'adresse spécifiée.
 
 ### Automatisation
 
-Pour automatiser l'exécution du script, vous pouvez utiliser **cron** (sous Linux/macOS) ou le Planificateur de tâches (sous Windows). Voici un exemple d'automatisation avec **cron** :
+Pour automatiser l'exécution du script, plusieurs options sont disponibles en fonction de votre système d'exploitation :
 
-1. Créez un fichier `launch.sh` à la racine du projet avec le contenu suivant :
-  ```bash
-  #!/bin/bash
-  # If the script is located in your home directory, use the following:
-  SCRIPT_DIR="$HOME/onboard-grades-tracker"
-  LOG_FILE="$SCRIPT_DIR/cron.log"
-  echo "$(date) - Start script" >> $LOG_FILE
-  /usr/bin/python3 $SCRIPT_DIR/main.py >> $LOG_FILE 2>&1
-  echo "$(date) - End script" >> $LOG_FILE
-  echo "" >> $LOG_FILE
-  ```
+1. **Linux/macOS** : Utilisez **cron**, un outil intégré pour planifier des tâches récurrentes.
+2. **Windows** : Utilisez le Planificateur de tâches pour configurer une exécution automatique.
+3. **Docker** (optionnel) : Vous pouvez encapsuler le script dans un conteneur Docker et utiliser un orchestrateur pour gérer les exécutions.
 
-2. Rendez le script exécutable :
-  ```bash
-  chmod +x launch.sh
-  ```
+#### Exemple avec cron (Linux/macOS)
 
-3. Ajoutez une tâche cron pour exécuter le script à intervalles réguliers. Par exemple, pour l'exécuter tous les jours à 8h :
-  ```bash
-  crontab -e
-  ```
+Le fichier `launch.sh` inclus dans ce dépôt est conçu pour faciliter l'automatisation. Il gère les journaux et limite l'exécution à des plages horaires spécifiques.
 
-  Ajoutez la ligne suivante pour exécuter le script toutes les 5 minutes :
-  ```bash
-  */5 * * * * /bin/bash $HOME/onboard-grades-tracker/launch.sh
-  ```
+1. Rendez le script exécutable :
+   ```bash
+   chmod +x launch.sh
+   ```
 
-4. Sauvegardez et quittez l'éditeur. Votre script sera désormais exécuté automatiquement à l'heure spécifiée.
+2. Ajoutez une tâche cron pour exécuter le script à intervalles réguliers. Par exemple, pour l'exécuter toutes les 5 minutes :
+   ```bash
+   crontab -e
+   ```
 
-Pour les utilisateurs de Windows, vous pouvez configurer une tâche planifiée pour exécuter le script `launch.sh` ou directement le fichier Python.
+   Ajoutez la ligne suivante :
+   ```bash
+   */5 * * * * /bin/bash $HOME/onboard-grades-tracker/launch.sh
+   ```
 
-**Note :** Assurez-vous que les chemins et permissions sont correctement configurés pour éviter les erreurs lors de l'exécution automatique. En particulier sur macOS, les dossiers Bureau, Documents et Téléchargement on par défaut des accès restreint : il est préférable de placer le script dans un autre dossier.
+3. Sauvegardez et quittez l'éditeur. Votre script sera désormais exécuté automatiquement à l'heure spécifiée.
+
+#### Exemple avec le Planificateur de tâches (Windows)
+
+1. Ouvrez le Planificateur de tâches et créez une nouvelle tâche.
+
+2. Configurez un déclencheur pour exécuter la tâche à intervalles réguliers (par exemple, toutes les 5 minutes).
+
+3. Dans l'action, sélectionnez "Démarrer un programme" et indiquez le chemin vers `bash.exe` (fourni par Git Bash ou WSL).
+
+4. Dans les arguments, ajoutez le chemin vers le fichier `launch.sh` :
+   ```bash
+   /path/to/launch.sh
+   ```
+
+5. Sauvegardez la tâche. Elle sera exécutée automatiquement selon la planification.
+
+#### Notes importantes
+
+- **Plages horaires** : Le fichier `launch.sh` inclut des variables pour limiter l'exécution à des plages horaires spécifiques (`START_HOUR` et `END_HOUR`).
+- **Journaux** : Les logs sont enregistrés dans un fichier `cron.log` et sont automatiquement tronqués pour éviter une croissance excessive.
+- **Permissions** : Assurez-vous que les chemins et permissions sont correctement configurés pour éviter les erreurs lors de l'exécution automatique. En particulier sur macOS, les dossiers Bureau, Documents et Téléchargement ont par défaut des accès restreints : il est préférable de placer le script dans un autre dossier.
 
 ## Auteurs
 

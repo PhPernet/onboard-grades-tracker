@@ -164,6 +164,7 @@ def compare_and_save_grades(new_grades, csv_path, lang):
     Compare the new grades with the existing ones and save the updated grades to a CSV file.
     """
     print("Comparing grades...")
+    diff = None
     if lang == "fr":
         COMPARE_COLS = ["Annee academique", "UE", "Cours", "Epreuve"]
     else:
@@ -227,19 +228,20 @@ def compare_and_save_grades(new_grades, csv_path, lang):
             print("No new grades.")
         else:
             print(f"{len(diff)} new grades detected:")
-            print(diff)
-            send_email(diff)  # Appel de la fonction pour envoyer un email
+            print(diff.to_string(index=False))
+        
     else:
         has_created_file = True
         print("Initial file created.")
         diff = new_grades
-        send_email(diff)  # Envoi d'un email pour les grades initiales
 
     # Save the updated grades to the CSV file
     new_grades.to_csv(csv_path, index=False)
 
     if not diff.empty and not has_created_file:
         print("File updated with new grades.")
+    
+    return diff
 
 
 def send_email(new_grades):
@@ -313,7 +315,11 @@ def main():
     new_grades = parse_grades(csv_content)
 
     # Step 5: Compare and save the grades
-    compare_and_save_grades(new_grades, CSV_PATH, common_params["lang"])
+    diff = compare_and_save_grades(new_grades, CSV_PATH, common_params["lang"])
+    if not diff.empty:
+        send_email(diff)
+
+
 
 
 if __name__ == "__main__":
