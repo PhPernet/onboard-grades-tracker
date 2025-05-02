@@ -12,11 +12,12 @@ Ce projet est un script Python conçu pour interagir avec la plateforme **Onboar
   - `beautifulsoup4`
   - `pandas`
   - `python-dotenv`
+  - `smtplib`
 
 ## Utilisation
 1. Clonez ce dépôt sur votre machine locale :
 ```bash
-git clone https://github.com/votre-utilisateur/onboard-grades-tracker.git
+git clone https://github.com/PhPernet/onboard-grades-tracker.git
 ```
 
 2. Créez un fichier `.env` à la racine du projet et ajoutez-y les variables suivantes en remplaçant par les informations adéquates. Les chaînes de caractères sont saisies sans guillemets.
@@ -27,10 +28,9 @@ PASSWORD=your_password
 
 # Configuration SMTP
 SMTP_SERVER=smtp.example.com
-# Pour Gmail, utilisez 465 ou 587
-# Pour Outlook, utilisez 587
-# Pour Yahoo, utilisez 465
-SMTP_PORT=465
+# exemple : smtp.gmail.com, smtp.orange.fr, smtp.free.fr, smtp.mail.me.com (icloud)
+SMTP_PORT=587
+# Il se peut que certaines messageries refusent le port 587. Dans ce cas, essayez le port 465.
 
 # Informations sur l'email pour l'envoie de la notification
 SENDER_EMAIL=example@domaine.com
@@ -40,7 +40,7 @@ SMTP_PASSWORD=your_smtp_password
 RECEIVER_EMAIL=recipient@domaine.com
 ```
 
-Pour certaines messageries, il faudra créer un mot de passe d'application ([instructions](https://support.google.com/accounts/answer/185833?hl=fr) pour gmail). Cela permet entre autres de ne pas stocker en clair votre mot de passe sur la machine.
+Pour certaines messageries, il faudra créer un mot de passe d'application ([Instructions pour gmail](https://support.google.com/accounts/answer/185833?hl=fr). Veuillez noter qu'il faut saisir les 16 caractères sans espaces).  Cela permet entre autres de ne pas stocker en clair votre mot de passe sur la machine.
 
 3. Exécutez le script souhaité. Par exemple :
 ```bash
