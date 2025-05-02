@@ -20,7 +20,7 @@ Ce projet est un script Python conçu pour interagir avec la plateforme **Onboar
 git clone https://github.com/PhPernet/onboard-grades-tracker.git
 ```
 
-2. Créez un fichier `.env` à la racine du projet et ajoutez-y les variables suivantes en remplaçant par les informations adéquates. Les chaînes de caractères sont saisies sans guillemets.
+2. Créez un fichier `.env` à la racine du projet et ajoutez-y les variables suivantes en remplaçant par les informations adéquates. Les chaînes de caractères doivent être saisies sans guillemets.
 ```env
 # Identifiants de connexion
 LOGIN=your_onboard_login
@@ -30,7 +30,8 @@ PASSWORD=your_password
 SMTP_SERVER=smtp.example.com
 # exemple : smtp.gmail.com, smtp.orange.fr, smtp.free.fr, smtp.mail.me.com (icloud)
 SMTP_PORT=587
-# Il se peut que certaines messageries refusent le port 587. Dans ce cas, essayez le port 465.
+# Il se peut que certaines messageries refusent le port 587.
+# Dans ce cas, essayez le port 465.
 
 # Informations sur l'email pour l'envoie de la notification
 SENDER_EMAIL=example@domaine.com
@@ -77,7 +78,7 @@ Le fichier `launch.sh` inclus dans ce dépôt est conçu pour faciliter l'automa
    */5 * * * * /bin/bash $HOME/onboard-grades-tracker/launch.sh
    ```
 
-3. Sauvegardez et quittez l'éditeur. Votre script sera désormais exécuté automatiquement à l'heure spécifiée.
+3. Sauvegardez et quittez l'éditeur. Votre script sera désormais exécuté automatiquement à l'heure spécifiée. Vous trouverez plus de détails sur l'utilisation de code en lisant la [documentation](https://docs.gitlab.com/topics/cron/).
 
 #### Exemple avec le Planificateur de tâches (Windows)
 
