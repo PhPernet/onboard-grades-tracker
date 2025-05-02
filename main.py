@@ -252,24 +252,24 @@ def send_email(new_grades):
     sender_email =  os.getenv("SENDER_EMAIL")
     subject = "Nouvelles notes détectées"
     
-    # Construire le contenu de l'email
+    # Construct the email body
     body = "Bonjour,\n\nLes nouvelles notes suivantes ont été détectées :\n\n"
     for _, row in new_grades.iterrows():
         body += f"- Matière : {row['Cours']}, Note : {row['Note']}\n"
     body += "\nCordialement,\nVotre script de suivi des notes."
 
-    # Configuration de l'email
+    # Email configuration
     msg = MIMEMultipart()
     msg["From"] = sender_email
     msg["To"] = receiver_email
     msg["Subject"] = subject
     msg.attach(MIMEText(body, "plain"))
 
-    # Envoi de l'email
+    # Send the email
     try:
-        smtp_server = "smtp.mail.me.com"  # Serveur SMTP d'iCloud
-        smtp_port = 587  # Port SMTP d'iCloud
-        smtp_password = os.getenv("SMTP_PASSWORD") # Utiliser un mot de passe d'application iCloud
+        smtp_server = os.getenv("SMTP_SERVER")
+        smtp_port = os.getenv('SMTP_PORT')
+        smtp_password = os.getenv("SMTP_PASSWORD")
 
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
@@ -316,6 +316,8 @@ def main():
 
     # Step 5: Compare and save the grades
     diff = compare_and_save_grades(new_grades, CSV_PATH, common_params["lang"])
+
+    # Step 6: Send email if new grades are detecteds
     if not diff.empty:
         send_email(diff)
 
