@@ -28,9 +28,6 @@ CSV_PATH = os.path.join(DIR_FILE, "grades.csv")
 LOGIN = os.getenv("LOGIN")
 PASSWORD = os.getenv("PASSWORD")
 
-# Year to check for new grades
-YEAR = "2023-2024"
-
 # Regex to find the ids linked to the menus for years
 regex_menu_id_years = re.compile(r"form:sidebar_menuid':'(\d+_\d+_\d+)'.*?<span[^>]*>\s*\d+-\d+\s*</span>")
 
@@ -265,16 +262,24 @@ def send_email(new_grades):
     msg["Subject"] = subject
     msg.attach(MIMEText(body, "plain"))
 
+    smtp_server = os.getenv("SMTP_SERVER")
+    smtp_port = os.getenv('SMTP_PORT')
+    smtp_password = os.getenv("SMTP_PASSWORD")
+
     # Send the email
     try:
-        smtp_server = os.getenv("SMTP_SERVER")
-        smtp_port = os.getenv('SMTP_PORT')
-        smtp_password = os.getenv("SMTP_PASSWORD")
-
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()
-            server.login(sender_email, smtp_password)
-            server.sendmail(sender_email, receiver_email, msg.as_string())
+        if smtp_port == "465":  # SSL
+            with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+                server.login(sender_email, smtp_password)
+                server.sendmail(sender_email, receiver_email, msg.as_string())
+        elif smtp_port == "587":  # STARTTLS
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(sender_email, smtp_password)
+                server.sendmail(sender_email, receiver_email, msg.as_string())
+        else:
+            raise ValueError(f"Invalid SMTP port: {smtp_port}. Use 465 for SSL or 587 for STARTTLS.")
+        
         print("Email sent successfully.")
     except Exception as e:
         print(f"Error sending email: {e}")
