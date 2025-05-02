@@ -78,7 +78,7 @@ Le fichier `launch.sh` inclus dans ce dépôt est conçu pour faciliter l'automa
    */5 * * * * /bin/bash $HOME/onboard-grades-tracker/launch.sh
    ```
 
-3. Sauvegardez et quittez l'éditeur. Votre script sera désormais exécuté automatiquement à l'heure spécifiée. Vous trouverez plus de détails sur l'utilisation de code en lisant la [documentation](https://docs.gitlab.com/topics/cron/).
+3. Sauvegardez et quittez l'éditeur. Votre script sera désormais exécuté automatiquement à l'heure spécifiée. Vous trouverez plus de détails sur l'utilisation de cron en lisant la [documentation](https://docs.gitlab.com/topics/cron/).
 
 #### Exemple avec le Planificateur de tâches (Windows)
 
