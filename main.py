@@ -7,13 +7,11 @@ import sys
 import pandas as pd
 from io import StringIO
 import unicodedata
-from dotenv import load_dotenv
 import re
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-load_dotenv()
 # Base URL for the onboard platform
 BASE = "https://onboard.ec-nantes.fr"
 LOGIN_URL = f"{BASE}/login"  # Login endpoint
@@ -25,8 +23,8 @@ DIR_FILE = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH = os.path.join(DIR_FILE, "grades.csv")
 
 # Login credentials
-LOGIN = os.getenv("LOGIN")
-PASSWORD = os.getenv("PASSWORD")
+LOGIN = os.environ("LOGIN")
+PASSWORD = os.environ("PASSWORD")
 
 # Regex to find the ids linked to the menus for years
 regex_menu_id_years = re.compile(r"form:sidebar_menuid':'(\d+_\d+_\d+)'.*?<span[^>]*>\s*\d+-\d+\s*</span>")
@@ -245,8 +243,8 @@ def send_email(new_grades):
     """
     Envoie un email avec les nouvelles notes détectées.
     """
-    receiver_email = os.getenv("RECEIVER_EMAIL")
-    sender_email =  os.getenv("SENDER_EMAIL")
+    receiver_email = os.environ("RECEIVER_EMAIL")
+    sender_email =  os.environ("SENDER_EMAIL")
     subject = "Nouvelles notes détectées"
     
     # Construct the email body
@@ -262,9 +260,9 @@ def send_email(new_grades):
     msg["Subject"] = subject
     msg.attach(MIMEText(body, "plain"))
 
-    smtp_server = os.getenv("SMTP_SERVER")
-    smtp_port = os.getenv('SMTP_PORT')
-    smtp_password = os.getenv("SMTP_PASSWORD")
+    smtp_server = os.environ("SMTP_SERVER")
+    smtp_port = os.environ('SMTP_PORT')
+    smtp_password = os.environ("SMTP_PASSWORD")
 
     # Send the email
     try:
