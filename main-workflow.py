@@ -7,13 +7,11 @@ import sys
 import pandas as pd
 from io import StringIO
 import unicodedata
-from dotenv import load_dotenv
 import re
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-load_dotenv()
 # Base URL for the onboard platform
 BASE = "https://onboard.ec-nantes.fr"
 LOGIN_URL = f"{BASE}/login"  # Login endpoint
@@ -25,8 +23,15 @@ DIR_FILE = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH = os.path.join(DIR_FILE, "grades.csv")
 
 # Login credentials
-LOGIN = os.getenv("LOGIN")
-PASSWORD = os.getenv("PASSWORD")
+LOGIN = os.environ["LOGIN"]
+PASSWORD = os.environ["PASSWORD"]
+
+# SMTP configuration for sending email notifications
+SMTP_SERVER = os.environ["SMTP_SERVER"]
+SMTP_PORT = os.environ["SMTP_PORT"]
+SMTP_PASSWORD = os.environ["SMTP_PASSWORD"]
+RECEIVER_EMAIL = os.environ["RECEIVER_EMAIL"]
+SENDER_EMAIL = os.environ["SENDER_EMAIL"]
 
 # Regex to find the ids linked to the menus for years
 regex_menu_id_years = re.compile(r"form:sidebar_menuid':'(\d+_\d+_\d+)'.*?<span[^>]*>\s*\d+-\d+\s*</span>")
@@ -245,8 +250,6 @@ def send_email(new_grades):
     """
     Envoie un email avec les nouvelles notes détectées.
     """
-    receiver_email = os.getenv("RECEIVER_EMAIL")
-    sender_email =  os.getenv("SENDER_EMAIL")
     subject = "Nouvelles notes détectées"
     
     # Construct the email body
@@ -257,28 +260,26 @@ def send_email(new_grades):
 
     # Email configuration
     msg = MIMEMultipart()
-    msg["From"] = sender_email
-    msg["To"] = receiver_email
+    msg["From"] = SENDER_EMAIL
+    msg["To"] = RECEIVER_EMAIL
     msg["Subject"] = subject
     msg.attach(MIMEText(body, "plain"))
 
-    smtp_server = os.getenv("SMTP_SERVER")
-    smtp_port = os.getenv('SMTP_PORT')
-    smtp_password = os.getenv("SMTP_PASSWORD")
+    
 
     # Send the email
     try:
-        if smtp_port == "465":  # SSL
-            with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
-                server.login(sender_email, smtp_password)
-                server.sendmail(sender_email, receiver_email, msg.as_string())
-        elif smtp_port == "587":  # STARTTLS
-            with smtplib.SMTP(smtp_server, smtp_port) as server:
+        if SMTP_PORT == "465":  # SSL
+            with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
+                server.login(SENDER_EMAIL, SMTP_PASSWORD)
+                server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
+        elif SMTP_PORT == "587":  # STARTTLS
+            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
                 server.starttls()
-                server.login(sender_email, smtp_password)
-                server.sendmail(sender_email, receiver_email, msg.as_string())
+                server.login(SENDER_EMAIL, SMTP_PASSWORD)
+                server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
         else:
-            raise ValueError(f"Invalid SMTP port: {smtp_port}. Use 465 for SSL or 587 for STARTTLS.")
+            raise ValueError(f"Invalid SMTP port: {SMTP_PORT}. Use 465 for SSL or 587 for STARTTLS.")
         
         print("Email sent successfully.")
     except Exception as e:
