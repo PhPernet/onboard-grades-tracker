@@ -2,7 +2,7 @@ name: Onboard Grades Tracker
 
 on:
   schedule:
-    - cron: "0 6 * * *" # Exécute tous les jours à 6h00 UTC
+    - cron: "*/5 * * * *" # Exécute tous les jours à 6h00 UTC
   workflow_dispatch: # Permet de lancer manuellement l'action
 
 jobs:
