@@ -13,7 +13,18 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    - name: Check if grades.csv artifact exists
+      id: check-artifact
+      run: |
+        echo "Checking if grades.csv artifact exists..."
+        if curl --head --silent --fail "${{ github.server_url }}/repos/${{ github.repository }}/actions/artifacts" | grep -q "grades"; then
+          echo "artifact-exists=true" >> $GITHUB_ENV
+        else
+          echo "artifact-exists=false" >> $GITHUB_ENV
+        fi
+
     - name: Download grades.csv artifact
+      if: env.artifact-exists == 'true'
       uses: actions/download-artifact@v4
       with:
         name: grades
@@ -41,7 +52,7 @@ jobs:
         RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
       run: |
         source venv/bin/activate
-        python main-workflow.py
+        python main.py
 
     - name: Upload grades.csv as artifact
       uses: actions/upload-artifact@v4
