@@ -35,4 +35,5 @@ jobs:
         RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
       run: |
         source venv/bin/activate
-        python main.py
+        python main-workflow.py
+
