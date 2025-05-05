@@ -1,7 +1,7 @@
 name: Onboard Grades Tracker
 
 on:
-  workflow_dispatch: # Permet de lancer manuellement l'action
+  workflow_dispatch:
 
 jobs:
   run-script:
@@ -18,17 +18,14 @@ jobs:
         curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
           "${{ github.api_url }}/repos/${{ github.repository }}/actions/artifacts" | \
           jq '[.artifacts[] | select(.name=="grades")] | sort_by(.created_at) | last' > artifact.json
-        if [ -s artifact.json ]; then
+
+        if jq -e '.archive_download_url' artifact.json >/dev/null; then
           echo "artifact-exists=true" >> $GITHUB_ENV
           ARTIFACT_URL=$(jq -r '.archive_download_url' artifact.json)
-          echo "ARTIFACT_URL=$ARTIFACT_URL" >> $GITHUB_ENV
+          echo "artifact-url=$ARTIFACT_URL" >> $GITHUB_ENV
         else
           echo "artifact-exists=false" >> $GITHUB_ENV
         fi
-    
-    - name: Debug ARTIFACT_URL
-      run: |
-        echo "Artifact URL: $ARTIFACT_URL"
 
     - name: Debug artifact.json
       run: |
@@ -38,8 +35,8 @@ jobs:
     - name: Download grades.csv artifact
       if: env.artifact-exists == 'true'
       run: |
-        echo "Downloading artifact from $ARTIFACT_URL"
-        curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -o grades.zip "$ARTIFACT_URL"
+        echo "Downloading artifact from ${{ env.artifact-url }}"
+        curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -o grades.zip "${{ env.artifact-url }}"
         unzip grades.zip
         rm grades.zip
 
@@ -55,7 +52,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: "3.9" # Version de Python à utiliser
+        python-version: "3.9"
 
     - name: Install dependencies
       run: |
