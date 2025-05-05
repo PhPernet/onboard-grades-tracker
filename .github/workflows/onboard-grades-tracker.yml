@@ -24,6 +24,11 @@ jobs:
           echo "artifact-exists=false" >> $GITHUB_ENV
         fi
 
+    - name: Debug artifact.json
+      run: |
+        echo "Contents of artifact.json:"
+        cat artifact.json
+
     - name: Download grades.csv artifact
       if: env.artifact-exists == 'true'
       uses: actions/download-artifact@v4
