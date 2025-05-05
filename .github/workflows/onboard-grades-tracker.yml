@@ -1,24 +1,31 @@
 name: Onboard Grades Tracker
 
 on:
-  workflow_dispatch:
+  # Allows the workflow to be triggered manually or on a schedule
+  workflow_dispatch: # Manual trigger
+  schedule:
+    - cron: '*/5 * * * *' # Scheduled to run every 5 minutes
 
 jobs:
   run-script:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # Specifies the environment to run the job
 
     steps:
+    # Step to check out the repository code
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    # Step to check if the grades.csv artifact exists in the repository
     - name: Check if grades.csv artifact exists
       id: check-artifact
       run: |
         echo "Checking if grades.csv artifact exists..."
+        # Fetches the list of artifacts and filters for the latest "grades" artifact
         curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
           "${{ github.api_url }}/repos/${{ github.repository }}/actions/artifacts" | \
           jq '[.artifacts[] | select(.name=="grades")] | sort_by(.created_at) | last' > artifact.json
 
+        # Checks if the artifact has a download URL
         if jq -e '.archive_download_url' artifact.json >/dev/null; then
           echo "artifact-exists=true" >> $GITHUB_ENV
           ARTIFACT_URL=$(jq -r '.archive_download_url' artifact.json)
@@ -26,12 +33,17 @@ jobs:
         else
           echo "artifact-exists=false" >> $GITHUB_ENV
         fi
+      # This step determines if a previous grades.csv artifact exists by querying the GitHub API.
+      # If the artifact exists, its download URL is saved to environment variables for later use.
 
+    # Debugging step to output the contents of artifact.json for troubleshooting
     - name: Debug artifact.json
       run: |
         echo "Contents of artifact.json:"
         cat artifact.json
+      # Outputs the contents of artifact.json to help debug issues with artifact detection.
 
+    # Step to download the grades.csv artifact if it exists
     - name: Download grades.csv artifact
       if: env.artifact-exists == 'true'
       run: |
@@ -39,42 +51,52 @@ jobs:
         curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -o grades.zip "${{ env.artifact-url }}"
         unzip grades.zip
         rm grades.zip
+      # Downloads the grades.csv artifact using its URL, extracts it, and removes the zip file.
 
+    # Step to verify if grades.csv exists, and create an empty file if it doesn't
     - name: Verify grades.csv exists
       run: |
         if [ -f "grades.csv" ]; then
           echo "grades.csv found!"
         else
           echo "grades.csv not found, creating an empty file."
+          # Creates a new grades.csv file with a header row
           echo "Annee academique,UE,Cours,Epreuve,Coefficient,Note" > grades.csv
-        fi
+      # Ensures that grades.csv exists in the workspace. If not, it creates an empty file with headers.
 
+    # Step to set up Python environment
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: "3.9"
+        python-version: "3.9" # Specifies the Python version to use
 
+    # Step to install Python dependencies
     - name: Install dependencies
       run: |
-        python -m venv venv
-        source venv/bin/activate
-        pip install -r requirements.txt
+        python -m venv venv # Creates a virtual environment
+        source venv/bin/activate # Activates the virtual environment
+        pip install -r requirements.txt # Installs dependencies from requirements.txt
+      # Sets up a Python virtual environment and installs required dependencies.
 
+    # Step to run the main Python script with environment variables for configuration
     - name: Run the script
       env:
-        LOGIN: ${{ secrets.LOGIN }}
-        PASSWORD: ${{ secrets.PASSWORD }}
-        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-        SMTP_PORT: ${{ secrets.SMTP_PORT }}
-        SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
-        SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-        RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+        LOGIN: ${{ secrets.LOGIN }} # Login credentials
+        PASSWORD: ${{ secrets.PASSWORD }} # Password
+        SMTP_SERVER: ${{ secrets.SMTP_SERVER }} # SMTP server for email
+        SMTP_PORT: ${{ secrets.SMTP_PORT }} # SMTP port
+        SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }} # Sender email address
+        SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }} # SMTP password
+        RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }} # Receiver email address
       run: |
-        source venv/bin/activate
-        python main.py
+        source venv/bin/activate # Activates the virtual environment
+        python main.py # Runs the main Python script
+      # Executes the main Python script, passing in sensitive configuration via environment variables.
 
+    # Step to upload the updated grades.csv file as an artifact
     - name: Upload grades.csv as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: grades
-        path: grades.csv
+        name: grades # Name of the artifact
+        path: grades.csv # Path to the file to upload
+      # Uploads the updated grades.csv file as an artifact for future use.
