@@ -1,0 +1,27 @@
+name: Delete all artifacts
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete all artifacts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="PhPernet/onboard-grades-tracker"
+          API_URL="https://api.github.com/repos/$REPO/actions/artifacts"
+
+          artifacts=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" "$API_URL" | jq '.artifacts[]')
+
+          echo "$artifacts" | jq -c '.' | while read -r artifact; do
+            id=$(echo "$artifact" | jq -r '.id')
+            name=$(echo "$artifact" | jq -r '.name')
+            echo "Deleting artifact: $name (ID: $id)"
+            curl -s -X DELETE -H "Authorization: Bearer $GITHUB_TOKEN" \
+              "https://api.github.com/repos/$REPO/actions/artifacts/$id"
+          done
+
+          echo "All artifacts deleted."
