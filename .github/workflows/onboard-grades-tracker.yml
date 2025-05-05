@@ -20,11 +20,15 @@ jobs:
           jq '[.artifacts[] | select(.name=="grades")] | sort_by(.created_at) | last' > artifact.json
         if [ -s artifact.json ]; then
           echo "artifact-exists=true" >> $GITHUB_ENV
-          export ARTIFACT_URL=$(jq -r '.archive_download_url' artifact.json)
+          ARTIFACT_URL=$(jq -r '.archive_download_url' artifact.json)
           echo "artifact-url=$ARTIFACT_URL" >> $GITHUB_ENV
         else
           echo "artifact-exists=false" >> $GITHUB_ENV
         fi
+    
+    - name: Debug artifact-url
+      run: |
+        echo "Artifact URL: $ARTIFACT_URL"
 
     - name: Debug artifact.json
       run: |
