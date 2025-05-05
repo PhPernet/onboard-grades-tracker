@@ -1,8 +1,6 @@
 name: Onboard Grades Tracker
 
 on:
-  #schedule:
-    #- cron: "* * * * *" # Exécute toutes les 5 minutes
   workflow_dispatch: # Permet de lancer manuellement l'action
 
 jobs:
@@ -13,22 +11,20 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Check if grades.csv artifact exists
-      id: check-artifact
-      run: |
-        echo "Checking if grades.csv artifact exists..."
-        if curl --head --silent --fail "${{ github.server_url }}/repos/${{ github.repository }}/actions/artifacts" | grep -q "grades"; then
-          echo "artifact-exists=true" >> $GITHUB_ENV
-        else
-          echo "artifact-exists=false" >> $GITHUB_ENV
-        fi
-
     - name: Download grades.csv artifact
-      if: env.artifact-exists == 'true'
       uses: actions/download-artifact@v4
       with:
         name: grades
         path: .
+
+    - name: Verify grades.csv exists
+      run: |
+        if [ -f "grades.csv" ]; then
+          echo "grades.csv found!"
+        else
+          echo "grades.csv not found, creating an empty file."
+          echo "Annee academique,UE,Cours,Epreuve,Coefficient,Note" > grades.csv
+        fi
 
     - name: Set up Python
       uses: actions/setup-python@v4
