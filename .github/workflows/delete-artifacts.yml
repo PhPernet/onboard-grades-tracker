@@ -3,6 +3,9 @@ name: Delete all artifacts
 on:
   workflow_dispatch:
 
+permissions:
+  actions: write
+
 jobs:
   cleanup:
     runs-on: ubuntu-latest
@@ -24,4 +27,4 @@ jobs:
               "https://api.github.com/repos/$REPO/actions/artifacts/$id"
           done
 
-          echo "All artifacts deleted."
+          echo "✅ All artifacts deleted."
