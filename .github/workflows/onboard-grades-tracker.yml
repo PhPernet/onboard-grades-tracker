@@ -20,6 +20,8 @@ jobs:
           jq '.artifacts[] | select(.name=="grades")' > artifact.json
         if [ -s artifact.json ]; then
           echo "artifact-exists=true" >> $GITHUB_ENV
+          export ARTIFACT_URL=$(jq -r '.[0].archive_download_url' artifact.json)
+          echo "artifact-url=$ARTIFACT_URL" >> $GITHUB_ENV
         else
           echo "artifact-exists=false" >> $GITHUB_ENV
         fi
@@ -31,10 +33,11 @@ jobs:
 
     - name: Download grades.csv artifact
       if: env.artifact-exists == 'true'
-      uses: actions/download-artifact@v4
-      with:
-        name: grades
-        path: .
+      run: |
+        echo "Downloading artifact from $ARTIFACT_URL"
+        curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -o grades.zip "$ARTIFACT_URL"
+        unzip grades.zip
+        rm grades.zip
 
     - name: Verify grades.csv exists
       run: |
