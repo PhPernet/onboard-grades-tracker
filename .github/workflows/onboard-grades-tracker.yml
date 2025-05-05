@@ -62,6 +62,7 @@ jobs:
           echo "grades.csv not found, creating an empty file."
           # Creates a new grades.csv file with a header row
           echo "Annee academique,UE,Cours,Epreuve,Coefficient,Note" > grades.csv
+        fi
       # Ensures that grades.csv exists in the workspace. If not, it creates an empty file with headers.
 
     # Step to set up Python environment
