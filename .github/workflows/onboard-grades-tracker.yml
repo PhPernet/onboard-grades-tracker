@@ -3,8 +3,8 @@ name: Onboard Grades Tracker
 on:
   # Allows the workflow to be triggered manually or on a schedule
   workflow_dispatch: # Manual trigger
-  schedule:
-    - cron: '*/5 * * * *' # Scheduled to run every 5 minutes
+  # schedule:
+    # - cron: '*/5 * * * *' # Scheduled to run every 5 minutes
 
 jobs:
   run-script:
