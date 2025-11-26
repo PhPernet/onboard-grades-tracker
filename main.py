@@ -152,8 +152,33 @@ def parse_grades(csv_content):
     """
     Parse the grades CSV content into a pandas DataFrame.
     """
-    csv_buffer = StringIO(csv_content)
-    return pd.read_csv(csv_buffer, sep=";")
+    # Defensive handling: content may be empty, HTML (page without grades),
+    # or malformed CSV. In those cases return an empty DataFrame and log info.
+    csv_str = (csv_content or "").strip()
+    if not csv_str:
+        print("parse_grades: empty response (no CSV content).")
+        return pd.DataFrame()
+
+    # If we received HTML (page exists but contains no CSV table), treat as no grades
+    if csv_str.lstrip().startswith("<"):
+        print("parse_grades: received HTML instead of CSV (likely no grades for this year).")
+        return pd.DataFrame()
+
+    # If the expected separator is not present, it's probably not the CSV we expect
+    first_line = csv_str.splitlines()[0]
+    if ";" not in first_line:
+        print("parse_grades: no ';' separator found in CSV header — treating as no grades.")
+        return pd.DataFrame()
+
+    try:
+        csv_buffer = StringIO(csv_content)
+        return pd.read_csv(csv_buffer, sep=";")
+    except pd.errors.EmptyDataError:
+        print("parse_grades: pandas reported EmptyDataError — no grades.")
+        return pd.DataFrame()
+    except pd.errors.ParserError as e:
+        print(f"parse_grades: ParserError reading CSV: {e} — treating as no grades.")
+        return pd.DataFrame()
 
 
 def compare_and_save_grades(new_grades, csv_path, lang):
@@ -162,6 +187,11 @@ def compare_and_save_grades(new_grades, csv_path, lang):
     """
     print("Comparing grades...")
     diff = None
+    # If parsing produced an empty DataFrame, there are no grades to compare
+    if new_grades is None or new_grades.empty:
+        print("No grades found for the latest year (page exists but contains no notes). Nothing to save or compare.")
+        # Return an empty DataFrame to signal 'no new grades'
+        return pd.DataFrame()
     if lang == "fr":
         COMPARE_COLS = ["Annee academique", "UE", "Cours", "Epreuve"]
     else:
@@ -253,7 +283,7 @@ def send_email(new_grades):
     body = "Bonjour,\n\nLes nouvelles notes suivantes ont été détectées :\n\n"
     for _, row in new_grades.iterrows():
         body += f"- Matière : {row['Cours']}, Note : {row['Note']}\n"
-    body += "\nCordialement,\nVotre script de suivi des notes."
+    body += "\nCordialement,\nVotre script de suivi des notes (local)."
 
     # Email configuration
     msg = MIMEMultipart()
