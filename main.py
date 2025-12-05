@@ -151,19 +151,115 @@ def download_grades(session, common_params, menu_id):
 def parse_grades(csv_content):
     """
     Parse the grades CSV content into a pandas DataFrame.
+    Handles both CSV format and HTML table format (site may have changed).
     """
-    # Defensive handling: content may be empty, HTML (page without grades),
-    # or malformed CSV. In those cases return an empty DataFrame and log info.
     csv_str = (csv_content or "").strip()
     if not csv_str:
         print("parse_grades: empty response (no CSV content).")
         return pd.DataFrame()
 
-    # If we received HTML (page exists but contains no CSV table), treat as no grades
+    # If we received HTML, try to extract a table from it
     if csv_str.lstrip().startswith("<"):
-        print("parse_grades: received HTML instead of CSV (likely no grades for this year).")
-        return pd.DataFrame()
+        print("parse_grades: received HTML response. Attempting to extract table...")
+        try:
+            # Parse HTML and look for tables
+            soup = BeautifulSoup(csv_str, "html.parser")
+            tables = soup.find_all("table")
+            
+            if not tables:
+                print("parse_grades: no HTML table found in response.")
+                return pd.DataFrame()
+            
+            print(f"parse_grades: found {len(tables)} table(s) in HTML. Searching for valid grades table...")
+            
+            # Try to manually extract rows and columns from each table
+            for table_idx, table in enumerate(tables):
+                try:
+                    # Extract headers from <th> or first <tr>
+                    headers = []
+                    header_row = table.find("thead")
+                    if header_row:
+                        header_cells = header_row.find_all("th")
+                        headers = [cell.get_text(strip=True) for cell in header_cells]
+                    else:
+                        # Try first row as headers
+                        first_row = table.find("tr")
+                        if first_row:
+                            header_cells = first_row.find_all(["th", "td"])
+                            headers = [cell.get_text(strip=True) for cell in header_cells]
+                    
+                    if not headers:
+                        print(f"parse_grades: table {table_idx}: no headers found, skipping.")
+                        continue
+                    
+                    # Clean headers: remove "Filter by ...", extract only the main part
+                    cleaned_headers = []
+                    for h in headers:
+                        # Remove "Filter by XYZ" suffix
+                        if "Filter by" in h:
+                            h = h.split("Filter by")[0].strip()
+                        cleaned_headers.append(h)
+                    
+                    # Filter out empty header strings
+                    cleaned_headers = [h for h in cleaned_headers if h]
+                    if not cleaned_headers:
+                        print(f"parse_grades: table {table_idx}: all headers are empty after cleaning, skipping.")
+                        continue
+                    
+                    print(f"parse_grades: table {table_idx}: found headers (cleaned): {cleaned_headers}")
+                    
+                    # Extract data rows
+                    rows = []
+                    tbody = table.find("tbody") or table
+                    tbody_rows = tbody.find_all("tr")
+                    
+                    # Determine starting index: skip the first row only if it's a header row (contains <th>)
+                    start_idx = 0
+                    if tbody_rows and tbody_rows[0].find("th"):
+                        # First row has <th>, so it's a header row, skip it
+                        start_idx = 1
+                    
+                    for tr in tbody_rows[start_idx:]:
+                        cells = tr.find_all(["td", "th"])
+                        row_data = [cell.get_text(strip=True) for cell in cells]
+                        if row_data and len(row_data) > 0:
+                            # Pad or trim row data to match header count
+                            if len(row_data) < len(cleaned_headers):
+                                row_data.extend([""] * (len(cleaned_headers) - len(row_data)))
+                            elif len(row_data) > len(cleaned_headers):
+                                row_data = row_data[:len(cleaned_headers)]
+                            rows.append(row_data)
+                    
+                    print(f"parse_grades: table {table_idx}: extracted {len(rows)} data rows.")
+                    
+                    if rows:
+                        # Create DataFrame
+                        df = pd.DataFrame(rows, columns=cleaned_headers)
+                        if not df.empty:
+                            print(f"parse_grades: table {table_idx}: successfully extracted {len(df)} rows and {len(df.columns)} columns.")
+                            print(f"parse_grades: table {table_idx}: columns = {list(df.columns)}")
+                            print(f"parse_grades: table {table_idx}: first row = {df.iloc[0].to_dict() if len(df) > 0 else 'N/A'}")
+                            
+                            # Check if this looks like a grades table
+                            # Simple heuristic: if it has 4+ columns and one of them contains "Note", "Cours", or similar, it's likely a grades table
+                            if len(df.columns) >= 4:
+                                print(f"parse_grades: table {table_idx}: has {len(df.columns)} columns (>= 4), looks like a valid grades table, using it.")
+                                return df
+                            else:
+                                print(f"parse_grades: table {table_idx}: has only {len(df.columns)} columns, continuing search.")
+                    else:
+                        print(f"parse_grades: table {table_idx}: no data rows extracted.")
+                except Exception as ex:
+                    print(f"parse_grades: table {table_idx}: error extracting rows: {ex}")
+                    continue
+            
+            print("parse_grades: could not find a valid grades table in any of the HTML tables.")
+            return pd.DataFrame()
+        except Exception as e:
+            print(f"parse_grades: error parsing HTML: {e}")
+            return pd.DataFrame()
 
+    # Otherwise, try standard CSV parsing
     # If the expected separator is not present, it's probably not the CSV we expect
     first_line = csv_str.splitlines()[0]
     if ";" not in first_line:
@@ -192,32 +288,48 @@ def compare_and_save_grades(new_grades, csv_path, lang):
         print("No grades found for the latest year (page exists but contains no notes). Nothing to save or compare.")
         # Return an empty DataFrame to signal 'no new grades'
         return pd.DataFrame()
+    
+    # Normalize column names: clean up encoding issues and remove spaces
+    def clean_column_name(col):
+        # Replace common encoding artifacts
+        col = col.replace("A©", "e").replace("A‰", "e").replace("A ", "a")
+        # Remove accents
+        col = remove_accents(col)
+        # Remove spaces
+        col = col.replace(" ", "").lower()
+        return col
+    
+    new_grades.columns = [clean_column_name(col) for col in new_grades.columns]
+    
     if lang == "fr":
-        COMPARE_COLS = ["Annee academique", "UE", "Cours", "Epreuve"]
+        COMPARE_COLS = ["anneeacademique", "ue", "cours", "epreuve"]
     else:
-        COMPARE_COLS = ["Academic year", "UE", "Course", "Test"]
+        COMPARE_COLS = ["academicyear", "ue", "course", "test"]
     has_created_file = False
 
     if os.path.exists(csv_path):
         old_grades = pd.read_csv(csv_path)
+        # Normalize column names in old_grades too
+        old_grades.columns = [clean_column_name(col) for col in old_grades.columns]
+        
         if lang == "fr":
             old_grades = old_grades.rename(
                 columns={
-                    "Academic year": "Annee academique",
-                    "Course": "Cours",
-                    "Test": "Epreuve",
-                    "Coefficient": "Coefficient",
-                    "Grade": "Note",
+                    "academicyear": "anneeacademique",
+                    "course": "cours",
+                    "test": "epreuve",
+                    "coefficient": "coefficient",
+                    "grade": "note",
                 }
             )
         else:
             old_grades = old_grades.rename(
                 columns={
-                    "Annee academique": "Academic year",
-                    "Cours": "Course",
-                    "Epreuve": "Test",
-                    "Coefficient": "Coefficient",
-                    "Note": "Grade",
+                    "anneeacademique": "academicyear",
+                    "cours": "course",
+                    "epreuve": "test",
+                    "coefficient": "coefficient",
+                    "note": "grade",
                 }
             )
         old_compare = old_grades[COMPARE_COLS].copy()
@@ -282,8 +394,11 @@ def send_email(new_grades):
     # Construct the email body
     body = "Bonjour,\n\nLes nouvelles notes suivantes ont été détectées :\n\n"
     for _, row in new_grades.iterrows():
-        body += f"- Matière : {row['Cours']}, Note : {row['Note']}\n"
-    body += "\nCordialement,\nVotre script de suivi des notes (local)."
+        # Use normalized column names (lowercase, no spaces, no accents)
+        cours = row.get('cours', row.get('course', 'N/A'))
+        note = row.get('note', row.get('grade', 'N/A'))
+        body += f"- Matière : {cours}, Note : {note}\n"
+    body += "\nCordialement,\nVotre script de suivi des notes."
 
     # Email configuration
     msg = MIMEMultipart()
